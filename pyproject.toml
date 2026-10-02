@@ -1,0 +1,9 @@
+[project]
+name = "dot-agent"
+version = "0.1.0"
+description = "本地小模型与云端大模型协同的高效智能体系统（端云协同路由框架）"
+requires-python = ">=3.10"
+dependencies = []  # 框架阶段零三方依赖；接入真实模型时按需添加 httpx/pydantic
+
+[project.optional-dependencies]
+dev = ["pytest"]
