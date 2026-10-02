@@ -41,12 +41,21 @@ class AgentPipeline:
         meter: CallMeter | None = None,
         theta_default: float = 0.5,
         use_signals: bool = True,  # False → v0 规则协同（信号关闭，仅 bias 路由）
+        run_id: str = "default",   # 实验分组（SQLite 落库）
+        mode: str = "auto",        # auto/rule/signal/local_only/cloud_only
+        context_budget_bytes: int = 8192,  # 本地子任务上下文预算（保守近似）
     ) -> None:
         self.use_signals = use_signals
+        self.run_id = run_id
+        self.mode = mode
+        self.context_budget_bytes = context_budget_bytes
         self.meter = meter or CallMeter()
-        # 计量包装：之后所有组件只持有 MeteredClient，调用即记录
-        self.local: MeteredClient = MeteredClient(local_client, self.meter)
-        self.cloud: MeteredClient = MeteredClient(cloud_client, self.meter)
+        # 计量包装：所有组件只持有 MeteredClient，调用即记录（内存+SQLite）。
+        # 云端挂本地兜底：云端不可用时降级执行并如实记双档位（降级率可算）
+        self.local: MeteredClient = MeteredClient(local_client, self.meter, run_id=run_id)
+        self.cloud: MeteredClient = MeteredClient(
+            cloud_client, self.meter, run_id=run_id, fallback=self.local
+        )
         self.classifier = ClassificationPipeline(SemanticClassifier(self.local))
         self.decomposer = TaskDecomposer(self.local)
         self.scheduler = TaskScheduler(self.local)
@@ -192,8 +201,17 @@ class AgentPipeline:
                     trace.append(f"{st.id} 升级额度耗尽 → 保留失败输出")
                     return tr.output
 
-            # 上下文裁剪：只注入直接前驱答案
-            ctx_part = "".join(f"\n已知 {d}: {ctx[d]}" for d in st.deps if d in ctx)
+            # 上下文裁剪：只注入直接前驱答案；超预算丢弃最早前驱（drop-oldest，
+            # 单调淘汰）。字节预算是保守近似——这是上下文装配策略而非计量，
+            # 计量仍只用后端真实 usage（吸收自团队 cloud-edge-agent 的预算思想）
+            kept = [d for d in st.deps if d in ctx]
+            total_b = sum(len(ctx[d].encode("utf-8")) for d in kept)
+            headroom = self.context_budget_bytes - len(st.description.encode("utf-8"))
+            while kept and total_b > headroom:
+                dropped_dep = kept.pop(0)
+                total_b -= len(ctx[dropped_dep].encode("utf-8"))
+                trace.append(f"{st.id} 上下文预算超限，丢弃最早前驱 {dropped_dep}")
+            ctx_part = "".join(f"\n已知 {d}: {ctx[d]}" for d in kept)
             prompt = f"子问题: {st.description}{ctx_part}\n请给出简洁答案。"
 
             if self.use_signals:
@@ -238,12 +256,34 @@ class AgentPipeline:
     # ------------------------------------------------------------------ #
     def _finalize(self, query, answer, label, path, trace, t0, subtasks=None) -> RunResult:
         total = time.perf_counter() - t0
+        m = self.meter.summarize(total)
+        # 请求级落库（tasks 表）：C_time 是请求级量纲，分位数按此表算才不失真
+        stages = self.meter.stage_latency
+        plan_ms = (stages.get("classify", 0.0) + stages.get("decompose", 0.0)) * 1000
+        exec_ms = stages.get("execute", 0.0) * 1000
+        try:
+            from .gateway import store
+
+            store.record_task(
+                run_id=self.run_id, mode=self.mode, question=query[:500],
+                answer=answer[:2000], label=label.value, path=path,
+                n_subtasks=len(subtasks or []),
+                n_local=sum(1 for s in subtasks or [] if s.get("assigned") == "MD"),
+                n_cloud=sum(1 for s in subtasks or [] if s.get("assigned") == "MC"),
+                total_ms=total * 1000, plan_ms=plan_ms, exec_ms=exec_ms,
+                cloud_tokens=m["C_API_total"],
+                unknown_usage_calls=m["unknown_usage_calls"],
+            )
+        except Exception as e:  # 落库失败不阻断主流程，但要可见
+            import sys
+
+            print(f"[store] ⚠ tasks 落库失败: {e}", file=sys.stderr)
         return RunResult(
             query=query,
             answer=answer,
             label=label,
             path=path,
             trace=trace,
-            metrics=self.meter.summarize(total),
+            metrics=m,
             subtasks=subtasks or [],
         )

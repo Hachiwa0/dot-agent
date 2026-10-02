@@ -20,7 +20,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from .gateway.factory import make_clients
+from .gateway.factory import make_clients, warmup_real
 from .pipeline import AgentPipeline
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
@@ -120,7 +120,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def serve(host: str = "0.0.0.0", port: int = 8765) -> None:
     local, cloud, info = make_clients()
-    Handler.pipeline = AgentPipeline(local, cloud)
+    asyncio.run(warmup_real(info, local, cloud))  # 真实模型预热，防冷启动污染首请求
+    Handler.pipeline = AgentPipeline(local, cloud, run_id="server")
     Handler.runtime = info
     for note in info.get("notes", []):
         print(f"[gateway] {note}")

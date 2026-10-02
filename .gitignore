@@ -4,3 +4,7 @@ __pycache__/
 *.egg-info/
 .venv/
 dist/
+# 实验运行时产物（SQLite 归档时导出 CSV/JSON 后另存）
+data/*.db
+data/*.db-wal
+data/*.db-shm

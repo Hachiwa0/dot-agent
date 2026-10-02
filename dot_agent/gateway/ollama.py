@@ -37,6 +37,12 @@ class OllamaClient(ModelClient):
         self.timeout_s = timeout_s
         self.want_logprobs = want_logprobs
         self.name = f"ollama:{self.model}"
+        # 本地回环绕过系统代理（WSL/企业代理会把 localhost 请求也转发的坑）
+        from urllib.request import ProxyHandler, build_opener
+        from urllib.parse import urlsplit
+        handlers = [ProxyHandler({})] if urlsplit(self.host).hostname in (
+            "127.0.0.1", "localhost", "::1") else []
+        self.opener = build_opener(*handlers)
 
     async def generate(
         self,
@@ -59,15 +65,18 @@ class OllamaClient(ModelClient):
         latency = time.perf_counter() - t0
 
         text = data.get("response", "")
-        prompt_tokens = data.get("prompt_eval_count") or max(1, int(len(prompt) / 1.6))
-        completion_tokens = data.get("eval_count") or max(1, int(len(text) / 1.6))
+        pt = data.get("prompt_eval_count")
+        ct = data.get("eval_count")
+        usage_missing = not (isinstance(pt, int) and isinstance(ct, int))
+        # usage 缺失时记 0 并标记，绝不按字数估算（计量红线；Ollama 正常都会回 count）
         probs = self._extract_probs(data)
         return GenerationResult(
             text=text,
             token_probs=probs,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
+            prompt_tokens=pt or 0,
+            completion_tokens=ct or 0,
             latency_s=latency,
+            usage_missing=usage_missing,
         )
 
     def _post(self, payload: dict, allow_logprobs_retry: bool) -> dict:
@@ -78,7 +87,7 @@ class OllamaClient(ModelClient):
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+            with self.opener.open(req, timeout=self.timeout_s) as resp:
                 return json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
             # 旧版 Ollama 不识别 logprobs 参数 → 去掉重试一次

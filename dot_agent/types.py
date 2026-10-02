@@ -24,7 +24,11 @@ class ModelTier(str, Enum):
 
 
 class Caller(str, Enum):
-    """每次模型调用的用途标记——三指标计量与消融分析按此分组。"""
+    """每次模型调用的用途标记——三指标计量与消融分析按此分组。
+    规划开销口径（吸收自团队 cloud-edge-agent）：caller ∈
+    {CLASSIFY, DECOMPOSE, DEP_JUDGE, SUMMARIZE} 的云端 token 单独统计——
+    DoT 论文未计量这笔开销，正是本项目要报告的差异点。
+    """
 
     CLASSIFY = "classify"
     DECOMPOSE = "decompose"
@@ -34,6 +38,7 @@ class Caller(str, Enum):
     VERIFY = "verify"
     RETRY = "retry"
     SUMMARIZE = "summarize"
+    WARMUP = "warmup"
 
 
 @dataclass
@@ -75,6 +80,9 @@ class GenerationResult:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     latency_s: float = 0.0
+    # 后端未回报 usage 时为 True：token 数不可信，计量侧记 NULL 不并入
+    # 口径（known_subtotal + unknown_usage_calls 分列，不虚报不假报）
+    usage_missing: bool = False
 
 
 @dataclass
@@ -128,6 +136,8 @@ class CallLog:
     prompt_tokens: int
     completion_tokens: int
     latency_s: float
+    requested_tier: ModelTier = ModelTier.MD  # 与 tier 不同 = 云端降级到本地
+    usage_missing: bool = False
     note: str = ""
 
 

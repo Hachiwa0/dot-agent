@@ -15,9 +15,20 @@ import os
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 
 from ..types import Caller, GenerationResult, ModelTier
 from .base import ModelClient
+
+
+def _make_opener(base_url: str):
+    """回环地址显式绕过系统代理（WSL/企业代理常见坑），云端保留环境代理。"""
+    from urllib.request import ProxyHandler, build_opener
+
+    handlers = []
+    if urlsplit(base_url).hostname in ("127.0.0.1", "localhost", "::1"):
+        handlers.append(ProxyHandler({}))
+    return build_opener(*handlers)
 
 
 class OpenAICompatClient(ModelClient):
@@ -35,6 +46,7 @@ class OpenAICompatClient(ModelClient):
         self.model = model or os.environ.get("CLOUD_MODEL", "deepseek-chat")
         self.timeout_s = timeout_s
         self.name = f"cloud:{self.model}"
+        self.opener = _make_opener(self.base_url)
 
     async def generate(
         self,
@@ -64,7 +76,7 @@ class OpenAICompatClient(ModelClient):
         )
         t0 = time.perf_counter()
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+            with self.opener.open(req, timeout=self.timeout_s) as resp:
                 data = json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
             raise RuntimeError(f"云端接口错误 {e.code}: {e.read()[:200]!r}") from e
@@ -72,12 +84,21 @@ class OpenAICompatClient(ModelClient):
             raise RuntimeError(f"云端接口连接失败: {e}") from e
         latency = time.perf_counter() - t0
 
-        text = data["choices"][0]["message"]["content"]
-        usage = data.get("usage", {})
+        choice = data["choices"][0]
+        text = choice["message"]["content"]
+        finish = choice.get("finish_reason")
+        if finish not in ("stop", None):  # 吸收 edge-cloud-prototype：非正常截断标注
+            text += f"\n[finish_reason={finish}]"
+        usage = data.get("usage") or {}
+        pt = usage.get("prompt_tokens")
+        ct = usage.get("completion_tokens")
+        usage_missing = not (isinstance(pt, int) and pt >= 0 and isinstance(ct, int))
+        # usage 缺失时 token 记 0 并标记——绝不按字数估算（计量红线）
         return GenerationResult(
             text=text,
             token_probs=None,  # 云端不做难度信号（省 token），路由信号只用本地
-            prompt_tokens=usage.get("prompt_tokens") or max(1, int(len(prompt) / 1.6)),
-            completion_tokens=usage.get("completion_tokens") or max(1, int(len(text) / 1.6)),
+            prompt_tokens=pt or 0,
+            completion_tokens=ct or 0,
             latency_s=latency,
+            usage_missing=usage_missing,
         )

@@ -33,7 +33,7 @@ def make_clients(
     local: ModelClient | None = None, cloud: ModelClient | None = None
 ) -> tuple[ModelClient, ModelClient, dict]:
     """返回 (local_client, cloud_client, runtime_info)。"""
-    info: dict = {"local": "stub", "cloud": "stub", "notes": []}
+    info: dict = {"local": "stub", "cloud": "stub", "notes": [], "warmup_needed": False}
 
     if local is None:
         if os.environ.get("OLLAMA_HOST") or os.environ.get("OLLAMA_MODEL"):
@@ -41,6 +41,7 @@ def make_clients(
             if _ollama_alive(host):
                 local = OllamaClient()
                 info["local"] = f"ollama:{local.model}"
+                info["warmup_needed"] = True
             else:
                 info["notes"].append(f"OLLAMA 环境变量已设但 {host} 不可达，本地回落 stub")
         else:
@@ -62,6 +63,18 @@ def make_clients(
         cloud or StubModelClient(ModelTier.MC, "cloud-stub", behavior=cloud_demo_behavior),
         info,
     )
+
+
+async def warmup_real(info: dict, local: ModelClient, cloud: ModelClient) -> None:
+    """真实客户端预热（stub 跳过）。server/eval 启动时调用，防冷启动污染 P95。"""
+    from .warmup import warmup
+
+    if info.get("warmup_needed"):
+        dt = await warmup(local)
+        print(f"[gateway] 本地模型预热完成 {dt:.1f}s")
+    if info.get("cloud", "").startswith("openai-compat"):
+        dt = await warmup(cloud)
+        print(f"[gateway] 云端预热完成 {dt:.1f}s")
 
 
 def report(info: dict) -> None:

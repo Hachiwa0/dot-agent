@@ -52,8 +52,15 @@ python -m dot_agent.server         # 之后同一命令，自动切换真实端�
 ## 三指标口径（对齐申请书）
 
 - **Acc**：固定评分规则（数值容差/选项字母/约束谓词/内容包含）；
-- **C_API**：仅云端 in+out token，含规划/校验/重试全部路径（网关层 `metered` 统一记录，无漏记）；
-- **C_time**：请求到结果墙钟时间（本地推理计入），报告中位数/P95，附阶段拆解（分类/分解/执行/汇总）。
+- **C_API**：仅云端 in+out token，含规划/校验/重试全部路径（`MeteredClient` 唯一出口，内存 + SQLite 双落库）；**规划开销**（分类/分解/依赖判断/汇总）单独统计——DoT 论文未计量此开销，是本项目报告的差异点；usage 缺失记 `unknown_usage_calls`，不并入也不估算；
+- **C_time**：请求到结果墙钟时间（本地推理计入），报告中位数/P95，附阶段拆解；**请求级量纲**（SQLite tasks 表按请求落库，分位数不失真）；真实模型部署必须先 warmup 预热；
+- **降级率**：云端不可用降级本地时如实记双档位（`cloud_fallbacks`），不虚报云端消耗。
+
+所有调用记录落 `data/metrics.db`（calls/tasks 双表，run_id 分组），评测报告引用原始库。
+
+## 团队整合
+
+本项目合成了团队两份实现的长处（计量工程 ← cloud-edge-agent；部署与诚实性纪律 ← edge-cloud-prototype），完整分析、吸收清单与未采纳理由见 **[docs/TEAM_INTEGRATION.md](docs/TEAM_INTEGRATION.md)**；版本固定部署纪律见 **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**。
 
 ## 评测四模式
 
