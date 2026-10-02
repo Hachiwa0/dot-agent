@@ -3,6 +3,12 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 .venv/
+.env
+.env.*
+runtime/
+secrets/
+*.pem
+*.key
 dist/
 # 实验运行时产物（SQLite 归档时导出 CSV/JSON 后另存）
 data/*.db

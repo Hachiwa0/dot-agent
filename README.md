@@ -60,6 +60,8 @@ python -m dot_agent.server         # 之后同一命令，自动切换真实端�
 
 ## 团队整合
 
+**新增可运行参考基线**：杨炜津的 `edge-cloud-prototype` 已按固定提交导入 `baselines/edge_cloud_prototype/`，含四模式CLI、独立评分题集及历史真实端云记录。根目录运行 `python eval/run_reference.py demo --dataset data/dot_smoke.jsonl --output reports/team-reference-demo` 可离线体验；组员使用与模式差异见 [参考基线接入说明](docs/REFERENCE_BASELINE.md)。这些历史结果属于参考实现，不代表主线已完成真实验证。
+
 本项目合成了团队两份实现的长处（计量工程 ← cloud-edge-agent；部署与诚实性纪律 ← edge-cloud-prototype），完整分析、吸收清单与未采纳理由见 **[docs/TEAM_INTEGRATION.md](docs/TEAM_INTEGRATION.md)**；版本固定部署纪律见 **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**。
 
 ## 评测四模式
