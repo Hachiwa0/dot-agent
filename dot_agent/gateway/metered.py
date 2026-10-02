@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import time
 
 from ..types import Caller, GenerationResult, ModelTier
 from .base import ModelClient
 from .meter import CallMeter
+from .openai_compat import GenerationError
 from . import store
 
 # 实测瞬态错误特征（来自团队 RTX 5060/sm_120 与公网环境实测）
@@ -66,9 +68,9 @@ class MeteredClient(ModelClient):
             # 云端不可用（无 key/连接失败）→ 降级本地执行，如实记双档位
             if self.fallback is None or requested_tier is not ModelTier.MC:
                 raise
-            print(f"[gateway] ⚠ 云端不可用（{e}），降级本地执行并如实计量", file=sys.stderr)
-            return await self.fallback.generate(
-                prompt, max_tokens=max_tokens, temperature=temperature, caller=caller
+            print("[gateway] ⚠ 云端调用失败，降级本地执行并如实计量", file=sys.stderr)
+            return await self.fallback._with_retries(
+                prompt, max_tokens, temperature, caller, requested_tier
             )
 
     async def _with_retries(
@@ -77,13 +79,20 @@ class MeteredClient(ModelClient):
     ) -> GenerationResult:
         last_err: Exception | None = None
         for attempt in range(self.retries + 1):
+            started = time.perf_counter()
             try:
                 result = await self.inner.generate(
                     prompt, max_tokens=max_tokens, temperature=temperature, caller=caller
                 )
             except Exception as e:  # noqa: BLE001 —— 失败尝试也要计量后决定去留
                 last_err = e
-                self._log(caller, self.tier, requested_tier, 0, 0, 0.0, True, str(e)[:200])
+                failed = e.result if isinstance(e, GenerationError) else None
+                self._log(caller, self.tier, requested_tier,
+                          failed.prompt_tokens if failed else 0,
+                          failed.completion_tokens if failed else 0,
+                          time.perf_counter() - started,
+                          failed.usage_missing if failed else True,
+                          str(e) if isinstance(e, GenerationError) else type(e).__name__)
                 if attempt < self.retries and _is_transient(str(e)):
                     await asyncio.sleep(min(2.0**attempt, 8.0))
                     continue
