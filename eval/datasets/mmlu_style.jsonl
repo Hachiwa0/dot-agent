@@ -1,0 +1,8 @@
+{"id": "qa-001", "type": "qa", "score": "letter", "query": "下列哪项不是哺乳动物？\nA. 鲸鱼\nB. 鲨鱼\nC. 蝙蝠\nD. 海豚", "expected": "B"}
+{"id": "qa-002", "type": "qa", "score": "letter", "query": "水的化学式是？\nA. CO2\nB. H2O\nC. O2\nD. NaCl", "expected": "B"}
+{"id": "qa-003", "type": "qa", "score": "letter", "query": "中国第一个朝代是？\nA. 周\nB. 秦\nC. 商\nD. 夏", "expected": "D"}
+{"id": "qa-004", "type": "qa", "score": "letter", "query": "HTTP 默认端口号是？\nA. 21\nB. 80\nC. 443\nD. 8080", "expected": "B"}
+{"id": "qa-005", "type": "qa", "score": "letter", "query": "光速约为？\nA. 3×10^8 m/s\nB. 3×10^6 m/s\nC. 3×10^10 m/s\nD. 3×10^5 m/s", "expected": "A"}
+{"id": "qa-006", "type": "qa", "score": "letter", "query": "下列哪个是操作系统？\nA. Python\nB. Linux\nC. HTTP\nD. JPEG", "expected": "B"}
+{"id": "qa-007", "type": "qa", "score": "letter", "query": "人体最大的器官是？\nA. 肝脏\nB. 大脑\nC. 皮肤\nD. 心脏", "expected": "C"}
+{"id": "qa-008", "type": "qa", "score": "letter", "query": "TCP 协议工作在哪一层？\nA. 物理层\nB. 传输层\nC. 应用层\nD. 网络层", "expected": "B"}

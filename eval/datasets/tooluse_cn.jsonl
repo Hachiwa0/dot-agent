@@ -1,0 +1,5 @@
+{"id": "tool-001", "type": "tooluse", "score": "contains", "query": "帮我查询北京明天的天气", "expected": "18"}
+{"id": "tool-002", "type": "tooluse", "score": "contains", "query": "查询上海的天气然后发送提醒给同事", "expected": "22"}
+{"id": "tool-003", "type": "tooluse", "score": "contains", "query": "帮我计算 12*(3+4) 的结果", "expected": "84"}
+{"id": "tool-004", "type": "tooluse", "score": "contains", "query": "计算 (100-28)/4 并发送提醒给老师", "expected": "18"}
+{"id": "tool-005", "type": "tooluse", "score": "contains", "query": "查询深圳的天气", "expected": "26"}

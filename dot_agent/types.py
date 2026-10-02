@@ -139,3 +139,5 @@ class RunResult:
     path: str  # cache_hit / fast_path / pipeline / direct_cloud
     trace: list[str] = field(default_factory=list)
     metrics: dict = field(default_factory=dict)
+    # 结构化子任务（前端依赖图可视化）：id/description/deps/assigned/level/status/answer
+    subtasks: list[dict] = field(default_factory=list)

@@ -1,0 +1,4 @@
+{"id": "plan-001", "type": "planning", "score": "constraint", "query": "预算500元以内, 周六出发两日游, 每天不超过3个景点, 请给出方案花费", "expected": "", "constraints": [{"op": "le", "value": 500}]}
+{"id": "plan-002", "type": "planning", "score": "constraint", "query": "安排一个3小时的学习计划, 每段学习不超过50分钟, 给出总段数安排", "expected": "", "constraints": [{"op": "ge", "value": 3}, {"op": "le", "value": 4}]}
+{"id": "plan-003", "type": "planning", "score": "constraint", "query": "用100元采购文具, 笔单价不超过5元且至少买10支, 本子至少4个, 给出采购数量", "expected": "", "constraints": [{"op": "le", "value": 100}]}
+{"id": "plan-004", "type": "planning", "score": "constraint", "query": "为20人会议订餐, 素食至少5份, 总预算不超过600元, 给出份数方案", "expected": "", "constraints": [{"op": "le", "value": 600}, {"op": "ge", "value": 20}]}

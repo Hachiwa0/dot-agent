@@ -1,0 +1,120 @@
+/* 端云协同智能体演示面板 —— 色彩参数来自已验证的 dataviz 参考调色板
+   MD(本地)=green slot2, MC(云端)=blue slot1；双色已通过 CVD/对比度校验，
+   节点另配 MD/MC 文字徽章（secondary encoding，identity 不依赖颜色）。 */
+
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.10);
+  --md: #008300;          /* 本地小模型 */
+  --mc: #2a78d6;          /* 云端大模型 */
+  --md-bg: rgba(0, 131, 0, 0.10);
+  --mc-bg: rgba(42, 120, 214, 0.10);
+  --good: #006300;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.10);
+    --md: #008300;
+    --mc: #3987e5;
+    --md-bg: rgba(0, 131, 0, 0.22);
+    --mc-bg: rgba(57, 135, 229, 0.22);
+    --good: #0ca30c;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; max-width: 1180px; margin: 0 auto; padding: 20px; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+header.app { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+header.app h1 { font-size: 18px; margin: 0; }
+.runtime-badge { font-size: 12px; color: var(--text-secondary); background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }
+
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.card h2 { font-size: 13px; margin: 0 0 10px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ---- 输入区 ---- */
+.query-box { grid-column: 1 / -1; display: flex; gap: 10px; }
+.query-box textarea {
+  flex: 1; resize: vertical; min-height: 64px; padding: 10px 12px;
+  border: 1px solid var(--grid); border-radius: 8px; background: var(--surface-1);
+  color: var(--text-primary); font: inherit;
+}
+.query-box textarea:focus { outline: 2px solid var(--mc); outline-offset: -1px; }
+button.run {
+  align-self: stretch; padding: 0 22px; border: none; border-radius: 8px;
+  background: var(--mc); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+button.run:disabled { opacity: 0.5; cursor: wait; }
+
+.examples { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  font-size: 12px; color: var(--text-secondary); background: var(--surface-1);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; cursor: pointer;
+}
+.chip:hover { border-color: var(--mc); color: var(--text-primary); }
+
+/* ---- stat tiles ---- */
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 700px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+.tile { padding: 10px 12px; }
+.tile .label { font-size: 12px; color: var(--text-muted); }
+.tile .value { font-size: 26px; font-weight: 650; margin-top: 2px; }
+.tile .sub { font-size: 12px; color: var(--text-secondary); }
+
+/* ---- 依赖图 ---- */
+.dag-wrap { overflow-x: auto; }
+.dag-wrap svg { display: block; margin: 0 auto; }
+.dag-empty { color: var(--text-muted); font-size: 13px; padding: 12px 4px; }
+.node rect { fill: var(--surface-1); stroke-width: 1.5; }
+.node rect.md { stroke: var(--md); }
+.node rect.mc { stroke: var(--mc); }
+.node .desc { font-size: 11px; fill: var(--text-primary); }
+.node .sid { font-size: 11px; font-weight: 700; fill: var(--text-secondary); }
+.edge { stroke: var(--grid); stroke-width: 2; fill: none; }
+.node { cursor: default; }
+.node:hover rect { stroke-width: 3; }
+.legend { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); align-items: center; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+/* ---- 时间线 ---- */
+.trace { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.trace li { padding: 5px 0 5px 14px; border-left: 2px solid var(--grid); position: relative; }
+.trace li::before { content: ""; position: absolute; left: -5px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+.trace li.cloud::before { background: var(--mc); }
+.trace li.local::before { background: var(--md); }
+.trace li.warn::before { background: var(--text-secondary); }
+.trace code { font-size: 12px; color: var(--text-secondary); }
+
+/* ---- 答案与历史 ---- */
+.answer { font-size: 15px; white-space: pre-wrap; word-break: break-word; }
+.path-badge { display: inline-block; font-size: 12px; padding: 1px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-secondary); margin-left: 8px; vertical-align: 1px; }
+.history-item { padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text-secondary); }
+.history-item:hover { background: var(--page); color: var(--text-primary); }
+.history-item .q { color: var(--text-primary); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-item .meta { font-size: 11px; color: var(--text-muted); }
+.error { color: #d03b3b; }
+
+.muted { color: var(--text-muted); font-size: 12px; }

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>端云协同智能体 · 路由演示面板</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="layout">
+  <header class="app">
+    <h1>端云协同智能体 · 路由演示面板</h1>
+    <span class="runtime-badge" id="runtime">运行时检测中…</span>
+  </header>
+
+  <div class="query-box">
+    <textarea id="query" placeholder="输入任务，例如：一个班30人，每5人一组，共多少组？"></textarea>
+    <button class="run" id="run">运行</button>
+  </div>
+
+  <div class="examples" id="examples"></div>
+
+  <div class="card">
+    <h2>结果 <span class="path-badge" id="path"></span></h2>
+    <div class="answer" id="answer">—</div>
+  </div>
+
+  <div class="card" style="grid-column: 1 / -1">
+    <h2>三指标（本次请求）</h2>
+    <div class="tiles">
+      <div class="card tile"><div class="label">完整响应时间 C_time</div><div class="value" id="t-ctime">–</div><div class="sub" id="t-ctime-sub"></div></div>
+      <div class="card tile"><div class="label">云端 token C_API</div><div class="value" id="t-capi">–</div><div class="sub" id="t-capi-sub"></div></div>
+      <div class="card tile"><div class="label">本地调用次数</div><div class="value" id="t-local">–</div><div class="sub" id="t-local-sub"></div></div>
+      <div class="card tile"><div class="label">任务类型 / 路径</div><div class="value" id="t-label" style="font-size:19px">–</div><div class="sub" id="t-label-sub"></div></div>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column: 1 / -1">
+    <h2>子任务依赖图（拓扑分层 · 同层并行）</h2>
+    <div class="dag-wrap" id="dag"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--md)"></span>MD 本地小模型</span>
+      <span><span class="swatch" style="background:var(--mc)"></span>MC 云端大模型</span>
+      <span class="muted">悬停节点查看子任务答案</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>决策时间线</h2>
+    <ul class="trace" id="trace"></ul>
+  </div>
+
+  <div class="card">
+    <h2>历史请求</h2>
+    <div id="history"><div class="muted">暂无</div></div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

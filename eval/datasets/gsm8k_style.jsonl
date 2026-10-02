@@ -1,0 +1,10 @@
+{"id": "math-001", "type": "reasoning", "score": "num", "query": "一个班30人, 每5人一组, 共多少组?", "expected": "6"}
+{"id": "math-002", "type": "reasoning", "score": "num", "query": "教室长8米宽6米, 面积是多少平方米?", "expected": "48"}
+{"id": "math-003", "type": "reasoning", "score": "num", "query": "小明有12个苹果, 分给3个朋友每人相同数量, 又买来5个, 现在有几个?", "expected": "9"}
+{"id": "math-004", "type": "reasoning", "score": "num", "query": "一件衣服原价200元打8折, 便宜了多少元?", "expected": "40"}
+{"id": "math-005", "type": "reasoning", "score": "num", "query": "火车每小时行120千米, 行3.5小时共行多少千米?", "expected": "420"}
+{"id": "math-006", "type": "reasoning", "score": "num", "query": "水池有水120升, 每分钟流出15升, 几分钟后剩30升?", "expected": "6"}
+{"id": "math-007", "type": "reasoning", "score": "num", "query": "鸡兔同笼共10个头28只脚, 兔有几只?", "expected": "4"}
+{"id": "math-008", "type": "reasoning", "score": "num", "query": "一本书180页, 第一天读40页, 第二天读的比第一天多25%, 还剩多少页?", "expected": "90"}
+{"id": "math-009", "type": "reasoning", "score": "num", "query": "长方形周长36厘米, 长是宽的2倍, 长是多少厘米?", "expected": "12"}
+{"id": "math-010", "type": "reasoning", "score": "num", "query": "甲乙两地相距450千米, 两车相向而行, 甲车时速60千米乙车时速90千米, 几小时相遇?", "expected": "3"}

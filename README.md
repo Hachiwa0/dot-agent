@@ -1,19 +1,31 @@
 # dot-agent
 
-本地小模型与云端大模型协同的高效智能体系统 —— **路由框架骨架**（大创项目：中山大学网络空间安全学院本科生专业实践项目）。
+本地小模型与云端大模型协同的高效智能体系统（大创项目：中山大学网络空间安全学院本科生专业实践项目）。
 
-当前阶段：**模型 API 未接入**（`gateway/stub.py` 桩客户端替身），先打通调度与路由全链路。接入真实 Ollama / 云端 OpenAI 兼容接口时，仅需实现 `ModelClient` 子类替换桩，调度层零改动。
+**当前状态**：路由框架完整可运行——三层任务分类、任务分解、依赖图调度、信号路由、工具沙箱、语义缓存、三指标计量、Web 演示面板、评测框架全部就绪；模型后端默认桩客户端（零模型可完整演示），接 Ollama + 云端 API 即为真实系统。
 
 ## 快速开始
 
 ```bash
-python demo/run_demo.py        # 三类典型请求的路由全流程演示
-python tests/test_l1_rules.py  # L1 规则分类单测（可直接执行，无需 pytest）
-python tests/test_scheduler.py # 依赖图分层 / 环退化 / 升级上限单测
-# 或: pip install -e .[dev] && pytest tests/
+# 1. Web 演示面板（推荐入口，零模型即可演示完整路由流程）
+python -m dot_agent.server          # 打开 http://localhost:8765
+
+# 2. 命令行演示
+python demo/run_demo.py
+
+# 3. 测试（无需 pytest，直接执行）
+python tests/test_l1_rules.py && python tests/test_scheduler.py && python tests/test_tools_verify.py
+
+# 4. 评测（stub 烟测 → 四模式对照报告）
+python eval/runner.py --all         # 输出 eval/report.md
+
+# 5. 接真实模型
+export OLLAMA_HOST=http://localhost:11434 OLLAMA_MODEL=qwen3:4b   # 可选，自动探测
+export CLOUD_BASE_URL=https://api.deepseek.com/v1 CLOUD_API_KEY=sk-... CLOUD_MODEL=deepseek-chat
+python -m dot_agent.server         # 之后同一命令，自动切换真实端云
 ```
 
-## 架构与代码地图
+## 架构
 
 ```
 请求 ─► 语义缓存 ─► 分类(L1规则→L2语义) ─► 快速通道 or 重流水线
@@ -21,49 +33,38 @@ python tests/test_scheduler.py # 依赖图分层 / 环退化 / 升级上限单�
               ┌─────────────────────────────┘
               ▼
         分解(decomposer) → 依赖图(scheduler) → 逐层并行执行
-              每子任务: 信号收集(signals) → 路由分配(router)
-                        → 生成 → 校验(verify) → 失败升级(escalator, ≤K)
+              每子任务: 工具沙箱(TOOLUSE) 或 信号收集(α-quantile+k=3一致性)
+                        → 路由分配(router) → 生成 → 校验(verify) → 失败升级(escalator,≤K)
               → 本地汇总 → 写缓存 → 三指标(meter)
 ```
 
 | 模块 | 文件 | 说明 |
 |---|---|---|
 | 核心类型 | `dot_agent/types.py` | 标签/特征/子任务/信号/计量记录 |
-| 模型网关 | `dot_agent/gateway/` | `base.py` 抽象接口、`stub.py` 桩、`metered.py` 计量装饰、`meter.py` 三指标 |
-| L1 规则层 | `dot_agent/classifier/l1_rules.py` | 零成本特征提取 + 三态判定；词表在 `config/classify_rules.json` |
-| L2 语义层 | `dot_agent/classifier/l2_semantic.py` | SLM few-shot 分类（max_tokens=4） |
-| 分类编排 | `dot_agent/classifier/pipeline.py` | 采纳阈值(0.85)与快速通道阈值(0.95)分离 |
-| 分解器 | `dot_agent/orchestrator/decomposer.py` | 编号子任务解析，失败重试→整题升级 |
-| 依赖图 | `dot_agent/orchestrator/scheduler.py` | 拓扑分层、同层并行、环→线性链、只注入直接前驱 |
-| 信号收集 | `dot_agent/orchestrator/signals.py` | α-quantile + k=3 一致性；greedy 结果复用 |
-| 路由 | `dot_agent/orchestrator/router.py` | 类型→策略表 POLICY + 阈值分配 |
-| 升级控制 | `dot_agent/orchestrator/escalator.py` | 串行升级 ≤K，超限整题收敛云端 |
-| 校验 | `dot_agent/orchestrator/verify.py` | 四种校验骨架（一致性/答案等价/约束/执行） |
-| 语义缓存 | `dot_agent/cache/semantic.py` | exact 版；embedding 检索占位 |
-| 总编排 | `dot_agent/pipeline.py` | `AgentPipeline.run()` 端到端，含 L3 重分类钩子 |
-
-设计文档见桌面《任务分类技术实现路线.md》（分类三层架构/策略映射/评估协议）。
+| 模型网关 | `dot_agent/gateway/` | `base` 抽象 · `stub` 桩 · `demo_behavior` 演示行为 · `ollama` 本地真实 · `openai_compat` 云端真实 · `metered` 计量装饰 · `factory` 自动装配 |
+| 分类 | `dot_agent/classifier/` | L1 规则（词表外置 `config/classify_rules.json`）· L2 SLM few-shot · 编排（采纳/快速通道双阈值） |
+| 编排 | `dot_agent/orchestrator/` | 分解 · 依赖图（环退化/同层并行/前驱注入）· 信号（α-quantile+一致性，greedy 复用）· 路由策略表 · 升级守卫(≤K) · 校验器 · 工具沙箱 |
+| 缓存 | `dot_agent/cache/semantic.py` | exact 版 + 确定性域过滤；embedding 检索占位 |
+| 总编排 | `dot_agent/pipeline.py` | 端到端 + L3 重分类钩子 + `use_signals` 开关（v0/v1 对照） |
+| 服务端 | `dot_agent/server.py` + `web/` | 标准库 HTTP；面板：三指标卡/依赖图 SVG/决策时间线/历史 |
+| 评测 | `eval/` | 四组内置数据集 · 四模式 runner · 报告 |
 
 ## 三指标口径（对齐申请书）
 
-- **Acc**：外部评测器按固定评分规则判定（未实现，`eval/` 待建）；
-- **C_API**：仅云端调用 in+out token 总和，含规划/校验/重试全部路径（`metered.py` 网关层统一记录，无漏记）；
-- **C_time**：请求到结果的墙钟时间，本地推理计入，报告中位数/P95（`meter.summarize()`）。
+- **Acc**：固定评分规则（数值容差/选项字母/约束谓词/内容包含）；
+- **C_API**：仅云端 in+out token，含规划/校验/重试全部路径（网关层 `metered` 统一记录，无漏记）；
+- **C_time**：请求到结果墙钟时间（本地推理计入），报告中位数/P95，附阶段拆解（分类/分解/执行/汇总）。
 
-## 接入真实模型（下一步）
+## 评测四模式
 
-```python
-# 实现 OllamaClient(ModelClient)：POST /api/generate，验证能否返回 logprobs；
-# 不能则 token_probs 传 None，α-quantile 自动退化为一致性信号（signals.py 已兼容）。
-# 实现 CloudClient(ModelClient)：任意 OpenAI 兼容接口（DeepSeek/GLM/Qwen）。
-pipeline = AgentPipeline(OllamaClient(...), CloudClient(...))
-```
+`local_only`（整题本地）/ `cloud_only`（整题云端，上界参照）/ `rule`（v0 规则协同，信号关闭）/ `signal`（v1 信号协同）——对应申请书"纯本地、纯云端、规则协同、优化协同"四组对照；消融按模式差异与 `use_signals` 开关展开。
 
 ## 路线图
 
-- [x] 路由框架骨架（本仓库）：分类三层 / 分解 / 依赖图 / 信号路由 / 升级控制 / 缓存 / 三指标
-- [ ] 接入 Ollama 量化小模型（Qwen3-4B/8B Q4）与云端 API
-- [ ] v0 三基线：纯本地 / 纯云端 / 规则协同可切换
-- [ ] 真实校验器：答案等价（SymPy）、约束谓词库、工具沙箱
-- [ ] 评测框架 `eval/`：GSM8K / MMLU 子集 / 自建中文任务，四组对照 + 消融
-- [ ] embedding 相似缓存、α-quantile 阈值扫描、（可选）α-Tree + Adapter
+- [x] 路由框架：分类三层 / 分解 / 依赖图 / 信号路由 / 升级控制 / 缓存 / 三指标
+- [x] 工具沙箱（mock 天气/提醒/计算器 + 错误码分类）与真实校验器
+- [x] Web 演示面板（路由决策可视化）
+- [x] 评测框架与四模式对照
+- [ ] 真实模型接入验证（Ollama logprobs 可行性 → 决定 α-quantile 或一致性路线）
+- [ ] embedding 语义缓存、阈值扫描、（可选）α-Tree + Adapter
+- [ ] 隐私扩展（申请书后期阶段）
