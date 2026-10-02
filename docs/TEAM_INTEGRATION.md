@@ -125,3 +125,7 @@
 - [ ] token 精确预算：上下文淘汰目前用字节近似，真实部署后按 usage 换算
 - [ ] α-quantile 在 Ollama 各版本的 logprobs 可行性验证（决定信号路线）
 - [ ] B 的 JSON 分解格式作为 decomposer 的可选模式（带严格校验）
+
+## 主线接口接入补充（2026-10-03）
+
+已将 llama.cpp 本地适配、DeepSeek thinking 配置、严格生成预检、截断/空回答失败且保留 usage 的处理接入 `dot_agent` 网关。新增远程密钥加载入口 `scripts/run_autodl.py`。不是只有参考代码副本；组员可直接从主线启动。操作和验证边界见 [AUTODL_MAINLINE.md](AUTODL_MAINLINE.md)。本次未做主线真实端云评测。

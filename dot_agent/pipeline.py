@@ -14,6 +14,7 @@ L3 运行时重分类钩子：快速通道一致性不过 → 升级 REASONING �
 """
 from __future__ import annotations
 
+import os
 import time
 
 from .cache.semantic import SemanticCache
@@ -54,7 +55,7 @@ class AgentPipeline:
         # 云端挂本地兜底：云端不可用时降级执行并如实记双档位（降级率可算）
         self.local: MeteredClient = MeteredClient(local_client, self.meter, run_id=run_id)
         self.cloud: MeteredClient = MeteredClient(
-            cloud_client, self.meter, run_id=run_id, fallback=self.local
+            cloud_client, self.meter, run_id=run_id, fallback=None if os.environ.get("DOT_REQUIRE_REAL") == "1" else self.local
         )
         self.classifier = ClassificationPipeline(SemanticClassifier(self.local))
         self.decomposer = TaskDecomposer(self.local)

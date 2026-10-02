@@ -2,7 +2,7 @@
 
 本地小模型与云端大模型协同的高效智能体系统（大创项目：中山大学网络空间安全学院本科生专业实践项目）。
 
-**当前状态**：路由框架完整可运行——三层任务分类、任务分解、依赖图调度、信号路由、工具沙箱、语义缓存、三指标计量、Web 演示面板、评测框架全部就绪；模型后端默认桩客户端（零模型可完整演示），接 Ollama + 云端 API 即为真实系统。
+**当前状态**：路由框架完整可运行——三层任务分类、任务分解、依赖图调度、信号路由、工具沙箱、语义缓存、三指标计量、Web 演示面板、评测框架全部就绪；模型后端默认桩客户端（零模型可完整演示），支持 Ollama 或 llama.cpp + 云端 API；真实效果仍需部署联调验证。
 
 ## 快速开始
 
@@ -59,6 +59,8 @@ python -m dot_agent.server         # 之后同一命令，自动切换真实端�
 所有调用记录落 `data/metrics.db`（calls/tasks 双表，run_id 分组），评测报告引用原始库。
 
 ## 团队整合
+
+**主线已接入 AutoDL + DeepSeek 配置**：支持 llama.cpp 本地接口、显式关闭云端思考、严格生成预检和失败调用计量。组员的启动、使用与原理见 [AutoDL 主线操作说明](docs/AUTODL_MAINLINE.md)。
 
 **新增可运行参考基线**：杨炜津的 `edge-cloud-prototype` 已按固定提交导入 `baselines/edge_cloud_prototype/`，含四模式CLI、独立评分题集及历史真实端云记录。根目录运行 `python eval/run_reference.py demo --dataset data/dot_smoke.jsonl --output reports/team-reference-demo` 可离线体验；组员使用与模式差异见 [参考基线接入说明](docs/REFERENCE_BASELINE.md)。这些历史结果属于参考实现，不代表主线已完成真实验证。
 

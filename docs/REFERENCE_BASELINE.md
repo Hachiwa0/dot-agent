@@ -90,3 +90,5 @@ python scripts/check_dot_dataset.py
 ```
 
 后续应在同一模型、硬件、固定题集及评分规则下，分别运行参考dot与主线rule/signal；统一失败分母、未知usage、缓存、预热和上下文处理，再分析策略差异。本次不替换主线算法，不把历史记录冒充新主线的实测结果。
+
+主线网关现已接入原型的 llama.cpp / DeepSeek 配置和生成校验，具体启动方法及尚未验证的部分见 [AutoDL 主线操作说明](AUTODL_MAINLINE.md)。参考目录继续保持原始提交内容。
